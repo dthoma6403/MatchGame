@@ -23,9 +23,7 @@ public class Match3_GameController : MonoBehaviour
     #endregion
 
     #region Private
-    private Vector2 topLeft = Vector2.zero;
-    private Vector2 botRight = Vector2.zero;
-
+    private Vector2 botLeft = Vector2.zero;
     private Transform[, ] blocks;
     #endregion
     #endregion
@@ -41,55 +39,71 @@ public class Match3_GameController : MonoBehaviour
     // dir ==== The direction the swipe went (Vector2.up, .left, etc.)
     public void PerformMove(Transform target, Vector2 dir)
     {
+        PrintDebugMsg("");
         PrintDebugMsg("Recieved move: " + target.name + " to be swiped " + dir + ".");
 
-        target.Translate(dir * gridSpaceSize);
-
         int[] coords = FindBlockCoordsInArray(target);
-        if(dir == Vector2.up)
+        PrintDebugMsg("Coords of moved obj: [" + coords[0] + ", " + coords[1] + "]");
+        if (coords[0] >= 0 && coords[0] < columns - 1 && coords[1] >= 0 && coords[1] < rows - 1)
         {
-            blocks[coords[0], coords[1] + 1].Translate(Vector2.down * gridSpaceSize);
-            blocks[coords[0], coords[1]] = blocks[coords[0], coords[1] + 1];
-            blocks[coords[0], coords[1] + 1] = target;
+            if (dir == Vector2.left && coords[0] > 0 || dir == Vector2.down && coords[1] > 0)
+            {
+                target.Translate(dir * gridSpaceSize);
+
+                if (dir == Vector2.up)
+                {
+                    PrintDebugMsg("Coords of other obj: [" + coords[0] + ", " + (coords[1] + 1) + "]");
+
+                    blocks[coords[0], coords[1] + 1].Translate(Vector2.down * gridSpaceSize);
+                    blocks[coords[0], coords[1]] = blocks[coords[0], coords[1]];
+                    blocks[coords[0], coords[1] + 1] = target;
+                }
+                else if (dir == Vector2.down)
+                {
+                    PrintDebugMsg("Coords of other obj: [" + coords[0] + ", " + (coords[1] - 1) + "]");
+
+                    blocks[coords[0], coords[1] - 1].Translate(Vector2.up * gridSpaceSize);
+                    blocks[coords[0], coords[1]] = blocks[coords[0], coords[1]];
+                    blocks[coords[0], coords[1] - 1] = target;
+                }
+                if (dir == Vector2.left)
+                {
+                    PrintDebugMsg("Coords of other obj: [" + (coords[0] - 1) + ", " + coords[1] + "]");
+
+                    blocks[coords[0] - 1, coords[1]].Translate(Vector2.right * gridSpaceSize);
+                    blocks[coords[0], coords[1]] = blocks[coords[0], coords[1]];
+                    blocks[coords[0] - 1, coords[1]] = target;
+                }
+                if (dir == Vector2.right)
+                {
+                    PrintDebugMsg("Coords of other obj: [" + (coords[0] + 1) + ", " + coords[1] + "]");
+
+                    blocks[coords[0] + 1, coords[1]].Translate(Vector2.left * gridSpaceSize);
+                    blocks[coords[0], coords[1]] = blocks[coords[0], coords[1]];
+                    blocks[coords[0] + 1, coords[1]] = target;
+                }
+            }
+            else PrintDebugMsg("Out of range of grid (left and down)!");
         }
-        else if (dir == Vector2.down)
-        {
-            blocks[coords[0], coords[1] - 1].Translate(Vector2.up * gridSpaceSize);
-            blocks[coords[0], coords[1]] = blocks[coords[0], coords[1] - 1];
-            blocks[coords[0], coords[1] - 1] = target;
-        }
-        if (dir == Vector2.left)
-        {
-            blocks[coords[0] - 1, coords[1]].Translate(Vector2.right * gridSpaceSize);
-            blocks[coords[0], coords[1]] = blocks[coords[0] - 1, coords[1]];
-            blocks[coords[0] - 1, coords[1]] = target;
-        }
-        if (dir == Vector2.right)
-        {
-            blocks[coords[0] + 1, coords[1]].Translate(Vector2.left * gridSpaceSize);
-            blocks[coords[0], coords[1]] = blocks[coords[0] + 1, coords[1]];
-            blocks[coords[0] + 1, coords[1]] = target;
-        }
+        else PrintDebugMsg("Out of range of grid (right and up)!");
+
+        CheckBoard();
     }
     #endregion
 
     #region Private
-    // Sets up the borders of the play area.
-    private void CalcBorders()
-    {
-        topLeft = transform.position;
-        botRight = topLeft + new Vector2(columns, -rows);
-    }
-
+    // Initial spawning of all the blocks on launch.
     private void SetUpBoard()
     {
-        for(int c = 0; c < columns; c++)
+        for(int r = 0; r < rows; r++)
         {
-            for(int r = 0; r < rows; r++)
+            for(int c = 0; c < columns; c++)
             {
                 int rand = Random.Range(0, spawnableBlocks.Length);
                 blocks[c, r] = Instantiate(spawnableBlocks[rand]).transform;
-                blocks[c, r].position = new Vector2(topLeft.x + gridSpaceSize * c, botRight.y + gridSpaceSize * r);
+                blocks[c, r].position = new Vector2(botLeft.x + gridSpaceSize * c, botLeft.y + gridSpaceSize * r);
+
+                PrintDebugMsg("[" + c + ", " + r + "] is " + blocks[c, r].name + " at " + (Vector2)blocks[c, r].position);
             }
         }
     }
@@ -112,14 +126,14 @@ public class Match3_GameController : MonoBehaviour
     private void DropBlocks(int column, int row)
     {
         int emptySpaces = 0;
-        for(int i = 0; i < rows - row; i++)
+        for(int r = 0; r < rows - row; r++)
         {
-            if (blocks[column, i] == null) emptySpaces++;
+            if (blocks[column, r] == null) emptySpaces++;
             else
             {
-                blocks[column, i].Translate(Vector2.down * gridSpaceSize * emptySpaces);
-                blocks[column, i - emptySpaces] = blocks[column, i];
-                blocks[column, i] = null;
+                blocks[column, r].Translate(Vector2.down * gridSpaceSize * emptySpaces);
+                blocks[column, r - emptySpaces] = blocks[column, r];
+                blocks[column, r] = null;
             }
         }
     }
@@ -127,11 +141,11 @@ public class Match3_GameController : MonoBehaviour
     // Find the given target in the list of blocks and return the coordinants if found.
     private int[] FindBlockCoordsInArray(Transform target)
     {
-        for (int c = 0; c < columns; c++)
+        for (int r = 0; r < rows; r++)
         {
-            for (int r = 0; r < rows; r++)
+            for (int c = 0; c < columns; c++)
             {
-                if (target == blocks[columns, rows]) return new int[2] { columns, rows };
+                if (target == blocks[c, r]) return new int[2] { c, r };
             }
         }
 
@@ -175,7 +189,7 @@ public class Match3_GameController : MonoBehaviour
     // Start is called on the frame when a script is enabled just before any of the Update methods is called the first time.
     void Start()
     {
-        CalcBorders();
+        botLeft = transform.position;
 
         blocks = new Transform[columns, rows];
         if (spawnableBlocks.Length != 0) SetUpBoard();
@@ -190,10 +204,8 @@ public class Match3_GameController : MonoBehaviour
     {
         if(isDebug)
         {
-            Debug.DrawRay(topLeft, Vector2.right * columns);
-            Debug.DrawRay(topLeft, Vector2.down * rows);
-            Debug.DrawRay(botRight, Vector2.left * columns);
-            Debug.DrawRay(botRight, Vector2.up * rows);
+            Debug.DrawRay(botLeft, Vector2.right * (columns - 1 + gridSpaceSize));
+            Debug.DrawRay(botLeft, Vector2.up * (rows - 1 + gridSpaceSize));
         }
     }
     // LateUpdate is called every frame after all other update functions, if the Behaviour is enabled.
