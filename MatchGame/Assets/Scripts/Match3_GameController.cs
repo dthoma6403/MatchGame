@@ -39,53 +39,62 @@ public class Match3_GameController : MonoBehaviour
     // dir ==== The direction the swipe went (Vector2.up, .left, etc.)
     public void PerformMove(Transform target, Vector2 dir)
     {
-        PrintDebugMsg("");
+        PrintDebugMsg("========================== Move ==========================");
         PrintDebugMsg("Recieved move: " + target.name + " to be swiped " + dir + ".");
 
-        int[] coords = FindBlockCoordsInArray(target);
-        PrintDebugMsg("Coords of moved obj: [" + coords[0] + ", " + coords[1] + "]");
-        if (coords[0] >= 0 && coords[0] < columns - 1 && coords[1] >= 0 && coords[1] < rows - 1)
+        // Get the objs' coords in the array of blocks.
+        int[] swipedObjCoords = FindBlockCoordsInArray(target);
+        int[] otherObjCoords = new int[2];
+        bool possibleMove = true;
+        if(dir == Vector2.up)
         {
-            if (dir == Vector2.left && coords[0] > 0 || dir == Vector2.down && coords[1] > 0)
-            {
-                target.Translate(dir * gridSpaceSize);
-
-                if (dir == Vector2.up)
-                {
-                    PrintDebugMsg("Coords of other obj: [" + coords[0] + ", " + (coords[1] + 1) + "]");
-
-                    blocks[coords[0], coords[1] + 1].Translate(Vector2.down * gridSpaceSize);
-                    blocks[coords[0], coords[1]] = blocks[coords[0], coords[1]];
-                    blocks[coords[0], coords[1] + 1] = target;
-                }
-                else if (dir == Vector2.down)
-                {
-                    PrintDebugMsg("Coords of other obj: [" + coords[0] + ", " + (coords[1] - 1) + "]");
-
-                    blocks[coords[0], coords[1] - 1].Translate(Vector2.up * gridSpaceSize);
-                    blocks[coords[0], coords[1]] = blocks[coords[0], coords[1]];
-                    blocks[coords[0], coords[1] - 1] = target;
-                }
-                if (dir == Vector2.left)
-                {
-                    PrintDebugMsg("Coords of other obj: [" + (coords[0] - 1) + ", " + coords[1] + "]");
-
-                    blocks[coords[0] - 1, coords[1]].Translate(Vector2.right * gridSpaceSize);
-                    blocks[coords[0], coords[1]] = blocks[coords[0], coords[1]];
-                    blocks[coords[0] - 1, coords[1]] = target;
-                }
-                if (dir == Vector2.right)
-                {
-                    PrintDebugMsg("Coords of other obj: [" + (coords[0] + 1) + ", " + coords[1] + "]");
-
-                    blocks[coords[0] + 1, coords[1]].Translate(Vector2.left * gridSpaceSize);
-                    blocks[coords[0], coords[1]] = blocks[coords[0], coords[1]];
-                    blocks[coords[0] + 1, coords[1]] = target;
-                }
-            }
-            else PrintDebugMsg("Out of range of grid (left and down)!");
+            otherObjCoords[0] = swipedObjCoords[0];
+            otherObjCoords[1] = swipedObjCoords[1] + 1;
+            if (otherObjCoords[1] >= rows) possibleMove = false;
         }
-        else PrintDebugMsg("Out of range of grid (right and up)!");
+        else if (dir == Vector2.down)
+        {
+            otherObjCoords[0] = swipedObjCoords[0];
+            otherObjCoords[1] = swipedObjCoords[1] - 1;
+            if (otherObjCoords[1] < 0) possibleMove = false;
+        }
+        else if (dir == Vector2.right)
+        {
+            otherObjCoords[0] = swipedObjCoords[0] + 1;
+            otherObjCoords[1] = swipedObjCoords[1];
+            if (otherObjCoords[0] >= columns) possibleMove = false;
+        }
+        else if (dir == Vector2.left)
+        {
+            otherObjCoords[0] = swipedObjCoords[0] - 1;
+            otherObjCoords[1] = swipedObjCoords[1];
+            if (otherObjCoords[0] < 0) possibleMove = false;
+        }
+        PrintDebugMsg("Swiped obj coords: [" + swipedObjCoords[0] + ", " + swipedObjCoords[1] + "]");
+        PrintDebugMsg("Other obj coords: [" + otherObjCoords[0] + ", " + otherObjCoords[1] + "]");
+
+        // If a possible move, perform the move.
+        if (!possibleMove) PrintDebugMsg("Not a possible move.");
+        else
+        {
+            Vector2 swipedObjPos = blocks[swipedObjCoords[0], swipedObjCoords[1]].position;
+            blocks[swipedObjCoords[0], swipedObjCoords[1]].position = blocks[otherObjCoords[0], otherObjCoords[1]].position;
+            blocks[otherObjCoords[0], otherObjCoords[1]].position = swipedObjPos;
+
+            blocks[swipedObjCoords[0], swipedObjCoords[1]] = blocks[otherObjCoords[0], otherObjCoords[1]];
+            blocks[otherObjCoords[0], otherObjCoords[1]] = target;
+            
+            if(!CheckForMatches())
+            {
+                PrintDebugMsg("No matches found!");
+
+                blocks[otherObjCoords[0], otherObjCoords[1]].position = blocks[swipedObjCoords[0], swipedObjCoords[1]].position;
+                blocks[swipedObjCoords[0], swipedObjCoords[1]].position = swipedObjPos;
+
+                blocks[otherObjCoords[0], otherObjCoords[1]] = blocks[swipedObjCoords[0], swipedObjCoords[1]];
+                blocks[swipedObjCoords[0], swipedObjCoords[1]] = target;
+            }
+        }
 
         CheckBoard();
     }
@@ -136,6 +145,22 @@ public class Match3_GameController : MonoBehaviour
                 blocks[column, r] = null;
             }
         }
+    }
+
+     // Goes through all the blocks in the array and checks (up, down, left, and right) for any matches of 3+ same blocks.
+    // Returns whether or not a match was found
+    private bool CheckForMatches()
+    {
+        bool matchesFound = false;
+        for(int r = 0; r < rows; r++)
+        {
+            for(int c = 0; c < columns; c++)
+            {
+
+            }
+        }
+
+        return matchesFound;
     }
 
     // Find the given target in the list of blocks and return the coordinants if found.
