@@ -1,6 +1,7 @@
 ﻿// (Unity3D) New monobehaviour script that includes regions for common sections, and supports debugging.
 using UnityEngine;
 using System.Collections;
+using System.Collections.Generic;
 
 public class Match3_GameController : MonoBehaviour
 {
@@ -104,7 +105,9 @@ public class Match3_GameController : MonoBehaviour
     // Initial spawning of all the blocks on launch.
     private void SetUpBoard()
     {
-        for(int r = 0; r < rows; r++)
+        PrintDebugMsg("====================== Setup Board ======================");
+
+        for (int r = 0; r < rows; r++)
         {
             for(int c = 0; c < columns; c++)
             {
@@ -115,12 +118,16 @@ public class Match3_GameController : MonoBehaviour
                 PrintDebugMsg("[" + c + ", " + r + "] is " + blocks[c, r].name + " at " + (Vector2)blocks[c, r].position);
             }
         }
+
+        PrintDebugMsg("==========================================================");
     }
 
      // Goes through from bottom to top all blocks to find out if there are any openings that need to be filled in by falling blocks.
     // [0 (columns), 0 (rows)] is the bottom left
     private void CheckBoard()
     {
+        PrintDebugMsg("===================== Checking Board =====================");
+        
         for(int r = 0; r < rows; r++)
         {
             for(int c = 0; c < columns; c++)
@@ -129,11 +136,15 @@ public class Match3_GameController : MonoBehaviour
                 else DropBlocks(c, r);
             }
         }
+
+        PrintDebugMsg("==========================================================");
     }
      // Drops the blocks starting in the given [column, row].
     // Once at the top, creates new blocks.
     private void DropBlocks(int column, int row)
     {
+        PrintDebugMsg("Droping blocks at [" + column + ", " + row + "]");
+
         int emptySpaces = 0;
         for(int r = 0; r < rows - row; r++)
         {
@@ -156,7 +167,63 @@ public class Match3_GameController : MonoBehaviour
         {
             for(int c = 0; c < columns; c++)
             {
+                if (blocks[c, r] != null)
+                {
+                    // Find potential matches
+                    PrintDebugMsg("=== Checking: " + blocks[c, r].name + " [" + c + ", " + r + "] " + (Vector2)blocks[c, r].position + " ===");
 
+                    List<Transform> horizObjs = new List<Transform>();
+                    List<Transform> vertObjs = new List<Transform>();
+                    BlockTypes currType = blocks[c, r].GetComponent<Match3_Block>().Type;
+
+                    int currI = 1;
+                    bool horizDone = false;
+                    bool vertDone = false;
+                    while (!horizDone || !vertDone)
+                    {
+                        // Horizontal (Going right)
+                        if (!horizDone && c + currI < columns && c < columns - 2)
+                        {
+                            if (currType == blocks[c + currI, r].GetComponent<Match3_Block>().Type) horizObjs.Add(blocks[c + currI, r]);
+                            else horizDone = true;
+                        }
+                        else horizDone = true;
+                        // Vertical (Going up)
+                        if (!vertDone && r + currI < rows && r < rows - 2)
+                        {
+                            if (currType == blocks[c, r + currI].GetComponent<Match3_Block>().Type) vertObjs.Add(blocks[c, r + currI]);
+                            else vertDone = true;
+                        }
+                        else vertDone = true;
+
+                        currI++;
+                    }
+
+                    PrintDebugMsg("Matches found (Horizontal, Vertical): " + horizObjs.Count + ", " + vertObjs.Count);
+
+                    // Find sufficient matches
+                    List<Transform> matchedObjs = new List<Transform>();
+                    if (horizObjs.Count >= 2)
+                    {
+                        PrintDebugMsg("Found Horizontal match!");
+                        foreach (Transform obj in horizObjs) matchedObjs.Add(obj);
+                    }
+                    if (vertObjs.Count >= 2)
+                    {
+                        PrintDebugMsg("Found Vertical match!");
+                        foreach (Transform obj in vertObjs) matchedObjs.Add(obj);
+                    }
+                    if (matchedObjs.Count > 0) matchedObjs.Add(blocks[c, r]);
+                    PrintDebugMsg(matchedObjs.Count + " objects involved in chain.");
+
+                    // Handle matches
+                    foreach (Transform obj in matchedObjs)
+                    {
+                        int[] coords = FindBlockCoordsInArray(obj);
+                        blocks[coords[0], coords[1]] = null;
+                        Destroy(obj.gameObject);
+                    }
+                }
             }
         }
 
@@ -215,9 +282,14 @@ public class Match3_GameController : MonoBehaviour
     void Start()
     {
         botLeft = transform.position;
-
+        
         blocks = new Transform[columns, rows];
         if (spawnableBlocks.Length != 0) SetUpBoard();
+
+        PrintDebugMsg("" + blocks.Length);
+        CheckForMatches();
+        CheckBoard();
+        PrintDebugMsg("" + blocks.Length);
     }
     // This function is called every fixed framerate frame, if the MonoBehaviour is enabled.
     void FixedUpdate()
@@ -227,7 +299,7 @@ public class Match3_GameController : MonoBehaviour
     // Update is called every frame, if the MonoBehaviour is enabled.
     void Update()
     {
-        if(isDebug)
+        if (isDebug)
         {
             Debug.DrawRay(botLeft, Vector2.right * (columns - 1 + gridSpaceSize));
             Debug.DrawRay(botLeft, Vector2.up * (rows - 1 + gridSpaceSize));

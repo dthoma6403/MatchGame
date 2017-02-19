@@ -28,8 +28,6 @@ public class Match3_Block : MonoBehaviour
     #region Private
     [SerializeField]
     private BlockTypes type = BlockTypes.Wood;
-    [SerializeField]
-    private float resourceAmount = 1;
     #endregion
     #endregion
 
