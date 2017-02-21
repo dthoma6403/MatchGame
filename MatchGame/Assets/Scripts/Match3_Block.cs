@@ -2,6 +2,13 @@
 using UnityEngine;
 using System.Collections;
 
+public enum BlockTypes
+{
+    Wood,
+    Stone,
+    Gold
+}
+
 public class Match3_Block : MonoBehaviour
 {
     #region GlobalVareables
@@ -19,7 +26,8 @@ public class Match3_Block : MonoBehaviour
     #endregion
 
     #region Private
-
+    [SerializeField]
+    private BlockTypes type = BlockTypes.Wood;
     #endregion
     #endregion
 
@@ -29,7 +37,12 @@ public class Match3_Block : MonoBehaviour
     #endregion
 
     #region Public
+     // Called fromt the main script when this block was involved with a match.
+    // totalMatch = Total objects involved with this match.
+    public void OnMatch(int totalMatch)
+    {
 
+    }
     #endregion
 
     #region Private
@@ -52,7 +65,13 @@ public class Match3_Block : MonoBehaviour
     #endregion
 
     #region Getters_Setters
-
+    public BlockTypes Type
+    {
+        get
+        {
+            return type;
+        }
+    }
     #endregion
     #endregion
 
