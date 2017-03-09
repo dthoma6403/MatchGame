@@ -3,6 +3,13 @@
 using UnityEngine;
 using System.Collections;
 
+public enum Platforms
+{
+    Editor,
+    PC,
+    Mobile
+}
+
 public class Match3_Input : MonoBehaviour
 {
     #region GlobalVareables
@@ -21,10 +28,14 @@ public class Match3_Input : MonoBehaviour
     #endregion
 
     #region Private
+    private Platforms currPlatform = Platforms.PC;
+
     private Vector2 touchStartPos = Vector2.zero;
     private bool swipeHandled = false;
-
     private Vector2 swipe = Vector2.zero;
+
+    private Vector2 mouseClickPos = Vector2.zero;
+
     private Transform swipedObj = null;
     #endregion
     #endregion
@@ -42,7 +53,7 @@ public class Match3_Input : MonoBehaviour
       // Checks the first touch to see if it moved the minimum distance to be considered a swipe.
      // Then determines whet direction the swipe was and returns a Vector2.left, .right, .up, or .down.
     // Returns Vector2.zero if no swipe detected.
-    private Vector2 CheckForSwipe()
+    private Vector2 CheckForMobileSwipe()
     {
         Touch[] touches = Input.touches;
         if (touches.Length == 0) return Vector2.zero;
@@ -93,6 +104,11 @@ public class Match3_Input : MonoBehaviour
         return Vector2.zero;
     }
 
+    private void CheckForMouseSwipe()
+    {
+
+    }
+
      // Draws a raycast from the camera at the swipe's starting position.
     // If the ray hits an object it returns the transform of the object that was hit.
     private Transform HandleTouch()
@@ -138,11 +154,28 @@ public class Match3_Input : MonoBehaviour
     void Awake()
     {
         PrintDebugMsg("Loaded.");
+
+        #if UNITY_STANDALONE
+            currPlatform = Platforms.PC;
+            PrintDebugMsg("PC Platform");
+        #endif
+        #if UNITY_EDITOR
+            currPlatform = Platforms.Editor;
+            PrintDebugMsg("Editor Platform");
+        #endif
+        #if UNITY_ANDROID
+            currPlatform = Platforms.Mobile;
+            PrintDebugMsg("Mobile Platform");
+        #endif
+        #if UNITY_IOS
+            currPlatform = Platforms.Mobile;
+            PrintDebugMsg("Mobile Platform");
+        #endif
     }
     // Start is called on the frame when a script is enabled just before any of the Update methods is called the first time.
     void Start()
     {
-
+        
     }
     // This function is called every fixed framerate frame, if the MonoBehaviour is enabled.
     void FixedUpdate()
@@ -152,17 +185,28 @@ public class Match3_Input : MonoBehaviour
     // Update is called every frame, if the MonoBehaviour is enabled.
     void Update()
     {
-        swipe = CheckForSwipe();
-        if (swipe != Vector2.zero)
+        if (currPlatform == Platforms.Editor || currPlatform == Platforms.Mobile)
         {
-            swipedObj = HandleTouch();
-            if (swipedObj != null)
+            swipe = CheckForMobileSwipe();
+            if (swipe != Vector2.zero)
             {
-                Match3_GameController.SINGLETON.PerformMove(swipedObj, swipe);
-                swipe = Vector2.zero;
-                swipedObj = null;
+                swipedObj = HandleTouch();
+                if (swipedObj != null)
+                {
+                    Match3_GameController.SINGLETON.PerformMove(swipedObj, swipe);
+                    swipe = Vector2.zero;
+                    swipedObj = null;
+                }
+                else swipe = Vector2.zero;
             }
-            else swipe = Vector2.zero;
+        }
+        if(currPlatform == Platforms.Editor || currPlatform == Platforms.PC)
+        {
+            if(Input.GetMouseButton(0))
+            {
+                if (mouseClickPos == Vector2.zero) mouseClickPos = Input.mousePosition;
+                else CheckForMouseSwipe();
+            }
         }
     }
     // LateUpdate is called every frame after all other update functions, if the Behaviour is enabled.
@@ -170,5 +214,5 @@ public class Match3_Input : MonoBehaviour
     {
 
     }
-    #endregion
+#endregion
 }
