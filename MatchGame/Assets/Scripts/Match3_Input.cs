@@ -1,5 +1,5 @@
 ﻿ // (Unity3D) This script handles the input with moving the objects around the board.
-// Touch screen will be swiping and mouse will be dragging.
+// Touch screen will be swiping and mouse will be clicking and holding then swiping the mouse.
 using UnityEngine;
 using System.Collections;
 
@@ -35,6 +35,7 @@ public class Match3_Input : MonoBehaviour
     private Vector2 swipe = Vector2.zero;
 
     private Vector2 mouseClickPos = Vector2.zero;
+    private bool isMouseSwipe = false;
 
     private Transform swipedObj = null;
     #endregion
@@ -69,33 +70,37 @@ public class Match3_Input : MonoBehaviour
         if(touches[0].phase == TouchPhase.Moved && !swipeHandled)
         {
             PrintDebugMsg("    Current touch moved. Delta Pos = " + touches[0].deltaPosition);
-            if(Mathf.Abs(touches[0].deltaPosition.x) >= minDistToSwipe)
+            if(Mathf.Abs(touches[0].deltaPosition.x) >= minDistToSwipe && Mathf.Abs(touches[0].deltaPosition.x) > Mathf.Abs(touches[0].deltaPosition.y))
             {
                 if(touches[0].deltaPosition.x < 0)
                 {
                     PrintDebugMsg("        Moved left!");
                     swipeHandled = true;
+                    isMouseSwipe = false;
                     return Vector2.left;
                 }
                 else
                 {
                     PrintDebugMsg("        Moved right!");
                     swipeHandled = true;
+                    isMouseSwipe = false;
                     return Vector2.right;
                 }
             }
-            if(Mathf.Abs(touches[0].deltaPosition.y) >= minDistToSwipe)
+            if(Mathf.Abs(touches[0].deltaPosition.y) >= minDistToSwipe && Mathf.Abs(touches[0].deltaPosition.y) > Mathf.Abs(touches[0].deltaPosition.x))
             {
                 if(touches[0].deltaPosition.y < 0)
                 {
                     PrintDebugMsg("        Moved down!");
                     swipeHandled = true;
+                    isMouseSwipe = false;
                     return Vector2.down;
                 }
                 else
                 {
                     PrintDebugMsg("        Moved up!");
                     swipeHandled = true;
+                    isMouseSwipe = false;
                     return Vector2.up;
                 }
             }
@@ -104,17 +109,59 @@ public class Match3_Input : MonoBehaviour
         return Vector2.zero;
     }
 
-    private void CheckForMouseSwipe()
+    // Checks to see if the mouse has moved the minnimum distance to be considered a swipe after clicking on a oblect.
+    private Vector2 CheckForMouseSwipe()
     {
+        PrintDebugMsg("    Checking for mouse swipe...");
+        Vector2 deltaMousePos = mouseClickPos - (Vector2)Input.mousePosition;
 
+        if (!swipeHandled)
+        {
+            if (Mathf.Abs(deltaMousePos.x) >= minDistToSwipe)
+            {
+                if(deltaMousePos.x > 0)
+                {
+                    PrintDebugMsg("        Moved left!");
+                    swipeHandled = true;
+                    isMouseSwipe = true;
+                    return Vector2.left;
+                }
+                else
+                {
+                    PrintDebugMsg("        Moved right!");
+                    swipeHandled = true;
+                    isMouseSwipe = true;
+                    return Vector2.right;
+                }
+            }
+            if (Mathf.Abs(deltaMousePos.y) >= minDistToSwipe)
+            {
+                if (deltaMousePos.y > 0)
+                {
+                    PrintDebugMsg("        Moved down!");
+                    swipeHandled = true;
+                    isMouseSwipe = true;
+                    return Vector2.down;
+                }
+                else
+                {
+                    PrintDebugMsg("        Moved up!");
+                    swipeHandled = true;
+                    isMouseSwipe = true;
+                    return Vector2.up;
+                }
+            }
+        }
+
+        return Vector2.zero;
     }
 
      // Draws a raycast from the camera at the swipe's starting position.
     // If the ray hits an object it returns the transform of the object that was hit.
-    private Transform HandleTouch()
+    private Transform HandleSwipe()
     {
         RaycastHit hit;
-        Ray ray = Camera.main.ScreenPointToRay(touchStartPos);
+        Ray ray = Camera.main.ScreenPointToRay((isMouseSwipe) ? mouseClickPos : touchStartPos);
         if(Physics.Raycast(ray, out hit))
         {
             PrintDebugMsg("Hit " + hit.transform.name + ".");
@@ -185,28 +232,33 @@ public class Match3_Input : MonoBehaviour
     // Update is called every frame, if the MonoBehaviour is enabled.
     void Update()
     {
-        if (currPlatform == Platforms.Editor || currPlatform == Platforms.Mobile)
-        {
-            swipe = CheckForMobileSwipe();
-            if (swipe != Vector2.zero)
-            {
-                swipedObj = HandleTouch();
-                if (swipedObj != null)
-                {
-                    Match3_GameController.SINGLETON.PerformMove(swipedObj, swipe);
-                    swipe = Vector2.zero;
-                    swipedObj = null;
-                }
-                else swipe = Vector2.zero;
-            }
-        }
+        // Get the swipe
+        if (currPlatform == Platforms.Editor || currPlatform == Platforms.Mobile) swipe = CheckForMobileSwipe();
         if(currPlatform == Platforms.Editor || currPlatform == Platforms.PC)
         {
-            if(Input.GetMouseButton(0))
+            if(Input.GetMouseButtonDown(0))
             {
                 if (mouseClickPos == Vector2.zero) mouseClickPos = Input.mousePosition;
-                else CheckForMouseSwipe();
             }
+            if (Input.GetMouseButton(0) && mouseClickPos != Vector2.zero)
+            {
+                if (!swipeHandled) swipe = CheckForMouseSwipe();
+            }
+        }
+
+        // Handle the swipe if there is one
+        if (swipe != Vector2.zero)
+        {
+            swipedObj = HandleSwipe();
+            if (swipedObj != null)
+            {
+                Match3_GameController.SINGLETON.PerformMove(swipedObj, swipe);
+                swipe = Vector2.zero;
+                mouseClickPos = Vector2.zero;
+                swipeHandled = false;
+                swipedObj = null;
+            }
+            else swipe = Vector2.zero;
         }
     }
     // LateUpdate is called every frame after all other update functions, if the Behaviour is enabled.
