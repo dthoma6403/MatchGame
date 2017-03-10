@@ -79,7 +79,8 @@ public class Match3_GameController : MonoBehaviour
         else
         {
             Vector2 swipedObjPos = blocks[swipedObjCoords[0], swipedObjCoords[1]].position;
-            blocks[swipedObjCoords[0], swipedObjCoords[1]].position = blocks[otherObjCoords[0], otherObjCoords[1]].position;
+            Vector2 otherObjPos = blocks[otherObjCoords[0], otherObjCoords[1]].position;
+            blocks[swipedObjCoords[0], swipedObjCoords[1]].position = otherObjPos;
             blocks[otherObjCoords[0], otherObjCoords[1]].position = swipedObjPos;
 
             blocks[swipedObjCoords[0], swipedObjCoords[1]] = blocks[otherObjCoords[0], otherObjCoords[1]];
@@ -89,8 +90,8 @@ public class Match3_GameController : MonoBehaviour
             {
                 PrintDebugMsg("No matches found!");
 
-                blocks[otherObjCoords[0], otherObjCoords[1]].position = blocks[swipedObjCoords[0], swipedObjCoords[1]].position;
                 blocks[swipedObjCoords[0], swipedObjCoords[1]].position = swipedObjPos;
+                blocks[otherObjCoords[0], otherObjCoords[1]].position = otherObjPos;
 
                 blocks[otherObjCoords[0], otherObjCoords[1]] = blocks[swipedObjCoords[0], swipedObjCoords[1]];
                 blocks[swipedObjCoords[0], swipedObjCoords[1]] = target;
@@ -101,7 +102,7 @@ public class Match3_GameController : MonoBehaviour
         bool matchesExist = true;
         while (matchesExist)
         {
-            matchesExist = CheckForMatches(true);
+            matchesExist = CheckForMatches();
             CheckBoard();
         }
     }
@@ -171,7 +172,7 @@ public class Match3_GameController : MonoBehaviour
       // Goes through all the blocks in the array and checks (up, down, left, and right) for any matches of 3+ same blocks.
      // Also handles those matches.
     // Returns whether or not a match was found (true if yes).
-    private bool CheckForMatches(bool onLaunch = false)
+    private bool CheckForMatches()
     {
         bool matchesFound = false;
         for(int r = 0; r < rows; r++)
@@ -242,7 +243,7 @@ public class Match3_GameController : MonoBehaviour
 
         return matchesFound;
     }
-    // Handles a group of objects that were ivolved in a match chain.
+    // Handles a group of objects that were involved in a match chain.
     private void HandleMatches(List<Transform> matches)
     {
         foreach (Transform obj in matches)
@@ -323,7 +324,7 @@ public class Match3_GameController : MonoBehaviour
         bool matchesExist = true;
         while(matchesExist)
         {
-            matchesExist = CheckForMatches(true);
+            matchesExist = CheckForMatches();
             CheckBoard();
 
             initialSpawnI++;
