@@ -22,12 +22,16 @@ public class Match3_Block : MonoBehaviour
     #endregion
 
     #region Public
-
+    public float speed = 1;
     #endregion
 
     #region Private
     [SerializeField]
     private BlockTypes type = BlockTypes.Wood;
+
+    private bool stillMoving = false;
+    private Vector2 dir = Vector2.zero;
+    private Vector2 currTargetPos = Vector2.zero;
     #endregion
     #endregion
 
@@ -43,10 +47,59 @@ public class Match3_Block : MonoBehaviour
     {
 
     }
+
+     // Sets stillMoving to true, the given direction, and the target position that it is to move to by calculating using its current position and the number of spaces given.
+    // Then makes the first move.
+    public void InitialMove(Vector2 direction, int spaces = 1)
+    {
+        PrintDebugMsg("Initial move...");
+
+        stillMoving = true;
+        dir = direction;
+        if (dir == Vector2.left) currTargetPos = (Vector2)transform.position - new Vector2(Match3_GameController.SINGLETON.GridSpaceSize * spaces, 0);
+        else if (dir == Vector2.right) currTargetPos = (Vector2)transform.position + new Vector2(Match3_GameController.SINGLETON.GridSpaceSize * spaces, 0);
+        else if (dir == Vector2.up) currTargetPos = (Vector2)transform.position + new Vector2(0, Match3_GameController.SINGLETON.GridSpaceSize * spaces);
+        else if (dir == Vector2.down) currTargetPos = (Vector2)transform.position - new Vector2(0, Match3_GameController.SINGLETON.GridSpaceSize * spaces);
+
+        ContinueMove();
+    }
     #endregion
 
     #region Private
-
+    // Continues the move that it is was told. Calls StopMoving() to stop if it reached its target position.
+    private void ContinueMove()
+    {
+        PrintDebugMsg("Continuing move...");
+        if (dir == Vector2.left)
+        {
+            transform.Translate(-(speed * Time.deltaTime), 0, 0);
+            if (transform.position.x - currTargetPos.x <= 0) StopMoving();
+        }
+        else if (dir == Vector2.right)
+        {
+            transform.Translate(+(speed * Time.deltaTime), 0, 0);
+            if (currTargetPos.x - transform.position.x <= 0) StopMoving();
+        }
+        else if (dir == Vector2.up)
+        {
+            transform.Translate(0, +(speed * Time.deltaTime), 0);
+            if (currTargetPos.y - transform.position.y <= 0) StopMoving();
+        }
+        else if (dir == Vector2.down)
+        {
+            transform.Translate(0, -(speed * Time.deltaTime), 0);
+            if (transform.position.y - currTargetPos.y <= 0) StopMoving();
+        }
+    }
+    // Sets stillMoving to false and resets all variables. Object will stop moving.
+    private void StopMoving()
+    {
+        PrintDebugMsg("Reached target!");
+        transform.position = currTargetPos;
+        stillMoving = false;
+        dir = Vector2.zero;
+        currTargetPos = Vector2.zero;
+    }
     #endregion
 
     #region Debug
@@ -72,6 +125,13 @@ public class Match3_Block : MonoBehaviour
             return type;
         }
     }
+    public bool StillMoving
+    {
+        get
+        {
+            return stillMoving;
+        }
+    }
     #endregion
     #endregion
 
@@ -88,7 +148,7 @@ public class Match3_Block : MonoBehaviour
     // Start is called on the frame when a script is enabled just before any of the Update methods is called the first time.
     void Start()
     {
-
+        
     }
     // This function is called every fixed framerate frame, if the MonoBehaviour is enabled.
     void FixedUpdate()
@@ -98,7 +158,7 @@ public class Match3_Block : MonoBehaviour
     // Update is called every frame, if the MonoBehaviour is enabled.
     void Update()
     {
-
+        if(stillMoving) ContinueMove();
     }
     // LateUpdate is called every frame after all other update functions, if the Behaviour is enabled.
     void LateUpdate()

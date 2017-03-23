@@ -26,6 +26,10 @@ public class Match3_GameController : MonoBehaviour
     #region Private
     private Vector2 botLeft = Vector2.zero;
     private Transform[, ] blocks;
+
+    private List<TextMesh> debugTextMeshes;
+
+    private Match3_Input inputScript = null;
     #endregion
     #endregion
 
@@ -80,8 +84,10 @@ public class Match3_GameController : MonoBehaviour
         {
             Vector2 swipedObjPos = blocks[swipedObjCoords[0], swipedObjCoords[1]].position;
             Vector2 otherObjPos = blocks[otherObjCoords[0], otherObjCoords[1]].position;
-            blocks[swipedObjCoords[0], swipedObjCoords[1]].position = otherObjPos;
-            blocks[otherObjCoords[0], otherObjCoords[1]].position = swipedObjPos;
+            //blocks[swipedObjCoords[0], swipedObjCoords[1]].position = otherObjPos;
+            //blocks[otherObjCoords[0], otherObjCoords[1]].position = swipedObjPos;
+            blocks[swipedObjCoords[0], swipedObjCoords[1]].GetComponent<Match3_Block>().InitialMove(dir);
+            blocks[otherObjCoords[0], otherObjCoords[1]].GetComponent<Match3_Block>().InitialMove(-dir);
 
             blocks[swipedObjCoords[0], swipedObjCoords[1]] = blocks[otherObjCoords[0], otherObjCoords[1]];
             blocks[otherObjCoords[0], otherObjCoords[1]] = target;
@@ -90,8 +96,8 @@ public class Match3_GameController : MonoBehaviour
             {
                 PrintDebugMsg("No matches found!");
 
-                blocks[swipedObjCoords[0], swipedObjCoords[1]].position = swipedObjPos;
-                blocks[otherObjCoords[0], otherObjCoords[1]].position = otherObjPos;
+                //blocks[swipedObjCoords[0], swipedObjCoords[1]].position = swipedObjPos;
+                //blocks[otherObjCoords[0], otherObjCoords[1]].position = otherObjPos;
 
                 blocks[otherObjCoords[0], otherObjCoords[1]] = blocks[swipedObjCoords[0], swipedObjCoords[1]];
                 blocks[swipedObjCoords[0], swipedObjCoords[1]] = target;
@@ -295,7 +301,13 @@ public class Match3_GameController : MonoBehaviour
     #endregion
 
     #region Getters_Setters
-    
+    public float GridSpaceSize
+    {
+        get
+        {
+            return gridSpaceSize;
+        }
+    }
     #endregion
     #endregion
 
@@ -315,6 +327,8 @@ public class Match3_GameController : MonoBehaviour
     // Start is called on the frame when a script is enabled just before any of the Update methods is called the first time.
     void Start()
     {
+        inputScript = GetComponent<Match3_Input>();
+
         botLeft = transform.position;
         
         blocks = new Transform[columns, rows];
