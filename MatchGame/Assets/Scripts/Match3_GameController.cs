@@ -43,77 +43,6 @@ public class Match3_GameController : MonoBehaviour
       // Called from Match3_Input when a swipe that successfully targeted an object was detected.
      // target = The target that was swiped on
     // dir ==== The direction the swipe went (Vector2.up, .left, etc.)
-    public void PerformMoveOld(Transform target, Vector2 dir)
-    {
-        PrintDebugMsg("========================== Move ==========================");
-        PrintDebugMsg("Recieved move: " + target.name + " to be swiped " + dir + ".");
-
-        // Get the objs' coords in the array of blocks.
-        int[] swipedObjCoords = FindBlockCoordsInArray(target);
-        int[] otherObjCoords = new int[2];
-        bool possibleMove = true;
-        if(dir == Vector2.up)
-        {
-            otherObjCoords[0] = swipedObjCoords[0];
-            otherObjCoords[1] = swipedObjCoords[1] + 1;
-            if (otherObjCoords[1] >= rows) possibleMove = false;
-        }
-        else if (dir == Vector2.down)
-        {
-            otherObjCoords[0] = swipedObjCoords[0];
-            otherObjCoords[1] = swipedObjCoords[1] - 1;
-            if (otherObjCoords[1] < 0) possibleMove = false;
-        }
-        else if (dir == Vector2.right)
-        {
-            otherObjCoords[0] = swipedObjCoords[0] + 1;
-            otherObjCoords[1] = swipedObjCoords[1];
-            if (otherObjCoords[0] >= columns) possibleMove = false;
-        }
-        else if (dir == Vector2.left)
-        {
-            otherObjCoords[0] = swipedObjCoords[0] - 1;
-            otherObjCoords[1] = swipedObjCoords[1];
-            if (otherObjCoords[0] < 0) possibleMove = false;
-        }
-        PrintDebugMsg("Swiped obj coords: [" + swipedObjCoords[0] + ", " + swipedObjCoords[1] + "]");
-        PrintDebugMsg("Other obj coords: [" + otherObjCoords[0] + ", " + otherObjCoords[1] + "]");
-
-        // If a possible move, perform the move.
-        if (!possibleMove) PrintDebugMsg("Not a possible move.");
-        else
-        {
-            Vector2 swipedObjPos = blocks[swipedObjCoords[0], swipedObjCoords[1]].position;
-            Vector2 otherObjPos = blocks[otherObjCoords[0], otherObjCoords[1]].position;
-            //blocks[swipedObjCoords[0], swipedObjCoords[1]].position = otherObjPos;
-            //blocks[otherObjCoords[0], otherObjCoords[1]].position = swipedObjPos;
-            blocks[swipedObjCoords[0], swipedObjCoords[1]].GetComponent<Match3_Block>().InitialMove(dir);
-            blocks[otherObjCoords[0], otherObjCoords[1]].GetComponent<Match3_Block>().InitialMove(-dir);
-
-            blocks[swipedObjCoords[0], swipedObjCoords[1]] = blocks[otherObjCoords[0], otherObjCoords[1]];
-            blocks[otherObjCoords[0], otherObjCoords[1]] = target;
-            
-            if(!CheckForMatches(true))
-            {
-                PrintDebugMsg("No matches found!");
-
-                //blocks[swipedObjCoords[0], swipedObjCoords[1]].position = swipedObjPos;
-                //blocks[otherObjCoords[0], otherObjCoords[1]].position = otherObjPos;
-
-                blocks[otherObjCoords[0], otherObjCoords[1]] = blocks[swipedObjCoords[0], swipedObjCoords[1]];
-                blocks[swipedObjCoords[0], swipedObjCoords[1]] = target;
-            }
-        }
-
-        CheckBoard();
-        bool matchesExist = true;
-        while (matchesExist)
-        {
-            matchesExist = CheckForMatches(true);
-            CheckBoard();
-        }
-    }
-
     public void PerformMove(Transform target, Vector2 dir)
     {
         PrintDebugMsg("========================== Move ==========================");
@@ -231,7 +160,7 @@ public class Match3_GameController : MonoBehaviour
             if (blocks[column, r] == null) emptySpaces++;
             else
             {
-                blocks[column, r].Translate(Vector2.down * gridSpaceSize * emptySpaces);
+                blocks[column, r].GetComponent<Match3_Block>().InitialMove(Vector2.down, emptySpaces);
                 blocks[column, r - emptySpaces] = blocks[column, r];
                 blocks[column, r] = null;
             }
