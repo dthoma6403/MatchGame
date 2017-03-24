@@ -29,6 +29,7 @@ public class Match3_Block : MonoBehaviour
     [SerializeField]
     private BlockTypes type = BlockTypes.Wood;
 
+    private Vector2 prevStartPos = Vector2.zero;
     private bool stillMoving = false;
     private Vector2 dir = Vector2.zero;
     private Vector2 currTargetPos = Vector2.zero;
@@ -55,6 +56,7 @@ public class Match3_Block : MonoBehaviour
         PrintDebugMsg("Initial move...");
 
         stillMoving = true;
+        prevStartPos = transform.position;
         dir = direction;
         if (dir == Vector2.left) currTargetPos = (Vector2)transform.position - new Vector2(Match3_GameController.SINGLETON.GridSpaceSize * spaces, 0);
         else if (dir == Vector2.right) currTargetPos = (Vector2)transform.position + new Vector2(Match3_GameController.SINGLETON.GridSpaceSize * spaces, 0);
@@ -158,7 +160,12 @@ public class Match3_Block : MonoBehaviour
     // Update is called every frame, if the MonoBehaviour is enabled.
     void Update()
     {
-        if(stillMoving) ContinueMove();
+        if (stillMoving)
+        {
+            ContinueMove();
+
+            if(isDebug) Debug.DrawLine(prevStartPos, currTargetPos);
+        }
     }
     // LateUpdate is called every frame after all other update functions, if the Behaviour is enabled.
     void LateUpdate()

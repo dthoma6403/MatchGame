@@ -27,9 +27,7 @@ public class Match3_GameController : MonoBehaviour
     private Vector2 botLeft = Vector2.zero;
     private Transform[, ] blocks;
 
-    private List<TextMesh> debugTextMeshes;
-
-    private Match3_Input inputScript = null;
+    private List<Transform> currMatchedObjs;
     #endregion
     #endregion
 
@@ -42,7 +40,7 @@ public class Match3_GameController : MonoBehaviour
       // Called from Match3_Input when a swipe that successfully targeted an object was detected.
      // target = The target that was swiped on
     // dir ==== The direction the swipe went (Vector2.up, .left, etc.)
-    public void PerformMove(Transform target, Vector2 dir)
+    public void PerformMoveOld(Transform target, Vector2 dir)
     {
         PrintDebugMsg("========================== Move ==========================");
         PrintDebugMsg("Recieved move: " + target.name + " to be swiped " + dir + ".");
@@ -112,6 +110,61 @@ public class Match3_GameController : MonoBehaviour
             CheckBoard();
         }
     }
+
+    public void PerformMove(Transform target, Vector2 dir)
+    {
+        PrintDebugMsg("========================== Move ==========================");
+        PrintDebugMsg("Recieved move: " + target.name + " to be swiped " + dir + ".");
+
+        // Get the objs' coords in the array of blocks.
+        int[] swipedObjCoords = FindBlockCoordsInArray(target);
+        int[] otherObjCoords = new int[2];
+        bool possibleMove = true;
+        if (dir == Vector2.up)
+        {
+            otherObjCoords[0] = swipedObjCoords[0];
+            otherObjCoords[1] = swipedObjCoords[1] + 1;
+            if (otherObjCoords[1] >= rows) possibleMove = false;
+        }
+        else if (dir == Vector2.down)
+        {
+            otherObjCoords[0] = swipedObjCoords[0];
+            otherObjCoords[1] = swipedObjCoords[1] - 1;
+            if (otherObjCoords[1] < 0) possibleMove = false;
+        }
+        else if (dir == Vector2.right)
+        {
+            otherObjCoords[0] = swipedObjCoords[0] + 1;
+            otherObjCoords[1] = swipedObjCoords[1];
+            if (otherObjCoords[0] >= columns) possibleMove = false;
+        }
+        else if (dir == Vector2.left)
+        {
+            otherObjCoords[0] = swipedObjCoords[0] - 1;
+            otherObjCoords[1] = swipedObjCoords[1];
+            if (otherObjCoords[0] < 0) possibleMove = false;
+        }
+        PrintDebugMsg("Swiped obj coords: [" + swipedObjCoords[0] + ", " + swipedObjCoords[1] + "]");
+        PrintDebugMsg("Other obj coords: [" + otherObjCoords[0] + ", " + otherObjCoords[1] + "]");
+
+        // Check if the objs can move in that direction and if so then check if there are a macth there.
+        if (!possibleMove) PrintDebugMsg("Not a possible move!");
+        else
+        {
+            Transform swipedObj = blocks[swipedObjCoords[0], swipedObjCoords[1]];
+            Match3_Block swipedObjScript = blocks[swipedObjCoords[0], swipedObjCoords[1]].GetComponent<Match3_Block>();
+            Transform otherObj = blocks[otherObjCoords[0], otherObjCoords[1]];
+            Match3_Block otherObjScript = blocks[otherObjCoords[0], otherObjCoords[1]].GetComponent<Match3_Block>();
+
+            blocks[swipedObjCoords[0], swipedObjCoords[1]] = otherObj;
+            blocks[otherObjCoords[0], otherObjCoords[1]] = swipedObj;
+            if (CheckForMatches())
+            {
+                swipedObjScript.InitialMove(dir);
+                otherObjScript.InitialMove(-dir);
+            }
+        }
+    }
     #endregion
 
     #region Private
@@ -175,11 +228,11 @@ public class Match3_GameController : MonoBehaviour
         }
     }
 
-      // Goes through all the blocks in the array and checks (up, down, left, and right) for any matches of 3+ same blocks.
-     // Also handles those matches.
+     // Goes through all the blocks in the array and checks (up, down, left, and right) for any matches of 3+ same blocks.
     // Returns whether or not a match was found (true if yes).
     private bool CheckForMatches()
     {
+        currMatchedObjs = new List<Transform>();
         bool matchesFound = false;
         for(int r = 0; r < rows; r++)
         {
@@ -223,26 +276,23 @@ public class Match3_GameController : MonoBehaviour
 
                     PrintDebugMsg("Matches found (Horizontal, Vertical): " + horizObjs.Count + ", " + vertObjs.Count);
 
-                    // Find sufficient matches
-                    List<Transform> matchedObjs = new List<Transform>();
+                    // Find sufficient matches and save them for when HandleMatches() is called
                     if (horizObjs.Count >= 2)
                     {
                         PrintDebugMsg("Found Horizontal match!");
-                        foreach (Transform obj in horizObjs) matchedObjs.Add(obj);
+                        foreach (Transform obj in horizObjs) currMatchedObjs.Add(obj);
                     }
                     if (vertObjs.Count >= 2)
                     {
                         PrintDebugMsg("Found Vertical match!");
-                        foreach (Transform obj in vertObjs) matchedObjs.Add(obj);
+                        foreach (Transform obj in vertObjs) currMatchedObjs.Add(obj);
                     }
-                    if (matchedObjs.Count > 0)
+                    if (currMatchedObjs.Count > 0)
                     {
-                        matchedObjs.Add(blocks[c, r]);
-
+                        currMatchedObjs.Add(blocks[c, r]);
                         matchesFound = true;
-                        HandleMatches(matchedObjs);
                     }
-                    PrintDebugMsg(matchedObjs.Count + " objects involved in chain.");
+                    PrintDebugMsg(currMatchedObjs.Count + " objects involved in chain.");
                 }
             }
         }
@@ -327,8 +377,6 @@ public class Match3_GameController : MonoBehaviour
     // Start is called on the frame when a script is enabled just before any of the Update methods is called the first time.
     void Start()
     {
-        inputScript = GetComponent<Match3_Input>();
-
         botLeft = transform.position;
         
         blocks = new Transform[columns, rows];
@@ -339,6 +387,7 @@ public class Match3_GameController : MonoBehaviour
         while(matchesExist)
         {
             matchesExist = CheckForMatches();
+            if (matchesExist) HandleMatches(currMatchedObjs);
             CheckBoard();
 
             initialSpawnI++;
