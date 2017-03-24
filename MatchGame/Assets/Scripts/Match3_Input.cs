@@ -232,33 +232,36 @@ public class Match3_Input : MonoBehaviour
     // Update is called every frame, if the MonoBehaviour is enabled.
     void Update()
     {
-        // Get the swipe
-        if (currPlatform == Platforms.Editor || currPlatform == Platforms.Mobile) swipe = CheckForMobileSwipe();
-        if(currPlatform == Platforms.Editor || currPlatform == Platforms.PC)
+        if (!Match3_GameController.SINGLETON.AreObjsMoving())
         {
-            if(Input.GetMouseButtonDown(0))
+            // Get the swipe
+            if (currPlatform == Platforms.Editor || currPlatform == Platforms.Mobile) swipe = CheckForMobileSwipe();
+            if (currPlatform == Platforms.Editor || currPlatform == Platforms.PC)
             {
-                if (mouseClickPos == Vector2.zero) mouseClickPos = Input.mousePosition;
+                if (Input.GetMouseButtonDown(0))
+                {
+                    if (mouseClickPos == Vector2.zero) mouseClickPos = Input.mousePosition;
+                }
+                if (Input.GetMouseButton(0) && mouseClickPos != Vector2.zero)
+                {
+                    if (!swipeHandled) swipe = CheckForMouseSwipe();
+                }
             }
-            if (Input.GetMouseButton(0) && mouseClickPos != Vector2.zero)
-            {
-                if (!swipeHandled) swipe = CheckForMouseSwipe();
-            }
-        }
 
-        // Handle the swipe if there is one
-        if (swipe != Vector2.zero)
-        {
-            swipedObj = HandleSwipe();
-            if (swipedObj != null)
+            // Handle the swipe if there is one
+            if (swipe != Vector2.zero)
             {
-                Match3_GameController.SINGLETON.PerformMove(swipedObj, swipe);
-                swipe = Vector2.zero;
-                mouseClickPos = Vector2.zero;
-                swipeHandled = false;
-                swipedObj = null;
+                swipedObj = HandleSwipe();
+                if (swipedObj != null)
+                {
+                    Match3_GameController.SINGLETON.PerformMove(swipedObj, swipe);
+                    swipe = Vector2.zero;
+                    mouseClickPos = Vector2.zero;
+                    swipeHandled = false;
+                    swipedObj = null;
+                }
+                else swipe = Vector2.zero;
             }
-            else swipe = Vector2.zero;
         }
     }
     // LateUpdate is called every frame after all other update functions, if the Behaviour is enabled.

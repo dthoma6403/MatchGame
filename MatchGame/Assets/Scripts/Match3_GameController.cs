@@ -28,6 +28,9 @@ public class Match3_GameController : MonoBehaviour
     private Transform[, ] blocks;
 
     private List<Transform> currMatchedObjs;
+    
+    private int currBoardUpdateAttempt = 0;
+    private int maxBoardUpdateAttempt = 5;
     #endregion
     #endregion
 
@@ -90,7 +93,7 @@ public class Match3_GameController : MonoBehaviour
             blocks[swipedObjCoords[0], swipedObjCoords[1]] = blocks[otherObjCoords[0], otherObjCoords[1]];
             blocks[otherObjCoords[0], otherObjCoords[1]] = target;
             
-            if(!CheckForMatches())
+            if(!CheckForMatches(true))
             {
                 PrintDebugMsg("No matches found!");
 
@@ -106,7 +109,7 @@ public class Match3_GameController : MonoBehaviour
         bool matchesExist = true;
         while (matchesExist)
         {
-            matchesExist = CheckForMatches();
+            matchesExist = CheckForMatches(true);
             CheckBoard();
         }
     }
@@ -158,12 +161,30 @@ public class Match3_GameController : MonoBehaviour
 
             blocks[swipedObjCoords[0], swipedObjCoords[1]] = otherObj;
             blocks[otherObjCoords[0], otherObjCoords[1]] = swipedObj;
-            if (CheckForMatches())
+            if (CheckForMatches(false))
             {
                 swipedObjScript.InitialMove(dir);
                 otherObjScript.InitialMove(-dir);
             }
+            else
+            {
+                blocks[swipedObjCoords[0], swipedObjCoords[1]] = swipedObj;
+                blocks[otherObjCoords[0], otherObjCoords[1]] = otherObj;
+                swipedObjScript.InitialMoveMatchless(dir);
+                otherObjScript.InitialMoveMatchless(-dir);
+            }
         }
+    }
+
+    // Goes through each object and checks if any are still moving. Returns true if at least one is still moving.
+    public bool AreObjsMoving()
+    {
+        foreach(Transform block in blocks)
+        {
+            if (block != null && block.GetComponent<Match3_Block>().StillMoving) return true;
+        }
+
+        return false;
     }
     #endregion
 
@@ -230,7 +251,7 @@ public class Match3_GameController : MonoBehaviour
 
      // Goes through all the blocks in the array and checks (up, down, left, and right) for any matches of 3+ same blocks.
     // Returns whether or not a match was found (true if yes).
-    private bool CheckForMatches()
+    private bool CheckForMatches(bool handleMatches)
     {
         currMatchedObjs = new List<Transform>();
         bool matchesFound = false;
@@ -273,7 +294,6 @@ public class Match3_GameController : MonoBehaviour
 
                         currI++;
                     }
-
                     PrintDebugMsg("Matches found (Horizontal, Vertical): " + horizObjs.Count + ", " + vertObjs.Count);
 
                     // Find sufficient matches and save them for when HandleMatches() is called
@@ -291,6 +311,8 @@ public class Match3_GameController : MonoBehaviour
                     {
                         currMatchedObjs.Add(blocks[c, r]);
                         matchesFound = true;
+                        if(handleMatches) HandleMatches(currMatchedObjs);
+                        currBoardUpdateAttempt = 0;
                     }
                     PrintDebugMsg(currMatchedObjs.Count + " objects involved in chain.");
                 }
@@ -320,6 +342,15 @@ public class Match3_GameController : MonoBehaviour
         PrintDebugMsg("[" + column + ", " + row + "] is " + blocks[column, row].name + " at " + (Vector2)blocks[column, row].position);
     }
 
+    // Goes through all objects and makes sure they are where they are supposed to be in the world.
+    private void UpdateObjsPos()
+    {
+        for (int r = 0; r < rows; r++)
+        {
+            for (int c = 0; c < columns; c++) blocks[c, r].position = new Vector2(botLeft.x + gridSpaceSize * c, botLeft.y + gridSpaceSize * r);
+        }
+    }
+
     // Find the given target in the list of blocks and return the coordinants if found.
     private int[] FindBlockCoordsInArray(Transform target)
     {
@@ -332,6 +363,26 @@ public class Match3_GameController : MonoBehaviour
         }
 
         return null;
+    }
+
+    // Updates the board by checking to see that all spots have an object and no matches are un-handled.
+    private void UpdateBoard()
+    {
+        bool matchesFound = true;
+        while (matchesFound)
+        {
+            CheckBoard();
+            matchesFound = CheckForMatches(true);
+            if (matchesFound)
+            {
+                HandleMatches(currMatchedObjs);
+                currBoardUpdateAttempt = 0;
+            }
+            CheckBoard();
+            UpdateObjsPos();
+        }
+
+        currBoardUpdateAttempt++;
     }
     #endregion
 
@@ -386,7 +437,7 @@ public class Match3_GameController : MonoBehaviour
         bool matchesExist = true;
         while(matchesExist)
         {
-            matchesExist = CheckForMatches();
+            matchesExist = CheckForMatches(true);
             if (matchesExist) HandleMatches(currMatchedObjs);
             CheckBoard();
 
@@ -402,12 +453,14 @@ public class Match3_GameController : MonoBehaviour
     // Update is called every frame, if the MonoBehaviour is enabled.
     void Update()
     {
+        if(currBoardUpdateAttempt < maxBoardUpdateAttempt && !AreObjsMoving()) UpdateBoard();
+
         if (isDebug)
         {
             Debug.DrawRay(botLeft, Vector2.right * (columns - 1 + gridSpaceSize));
             Debug.DrawRay(botLeft, Vector2.up * (rows - 1 + gridSpaceSize));
 
-            if (Input.GetKeyDown(KeyCode.M)) CheckForMatches();
+            if (Input.GetKeyDown(KeyCode.M)) CheckForMatches(true);
             if (Input.GetKeyDown(KeyCode.B)) CheckBoard();
         }
     }

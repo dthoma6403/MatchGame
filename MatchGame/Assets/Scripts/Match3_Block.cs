@@ -33,6 +33,7 @@ public class Match3_Block : MonoBehaviour
     private bool stillMoving = false;
     private Vector2 dir = Vector2.zero;
     private Vector2 currTargetPos = Vector2.zero;
+    private bool currMoveMatchless = false;
     #endregion
     #endregion
 
@@ -65,6 +66,13 @@ public class Match3_Block : MonoBehaviour
 
         ContinueMove();
     }
+    // Prepares to reverse move after first move is done then calls InitialMove() to start first move.
+    public void InitialMoveMatchless(Vector2 direction)
+    {
+        PrintDebugMsg("Performing a matchless move...");
+        currMoveMatchless = true;
+        InitialMove(direction);
+    }
     #endregion
 
     #region Private
@@ -93,14 +101,24 @@ public class Match3_Block : MonoBehaviour
             if (transform.position.y - currTargetPos.y <= 0) StopMoving();
         }
     }
-    // Sets stillMoving to false and resets all variables. Object will stop moving.
+     // Sets stillMoving to false and resets all variables. Object will stop moving.
+    // If current move was a matchless move then instead of stoping the object it will start a new move to put it back where it came from. After that move it will stop the object as normal.
     private void StopMoving()
     {
         PrintDebugMsg("Reached target!");
-        transform.position = currTargetPos;
-        stillMoving = false;
-        dir = Vector2.zero;
-        currTargetPos = Vector2.zero;
+
+        if (currMoveMatchless)
+        {
+            InitialMove(-dir);
+            currMoveMatchless = false;
+        }
+        else
+        {
+            transform.position = currTargetPos;
+            stillMoving = false;
+            dir = Vector2.zero;
+            currTargetPos = Vector2.zero;
+        }
     }
     #endregion
 
