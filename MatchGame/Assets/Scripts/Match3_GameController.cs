@@ -28,9 +28,6 @@ public class Match3_GameController : MonoBehaviour
     private Transform[, ] blocks;
 
     private List<Transform> currMatchedObjs;
-    
-    private int currBoardUpdateAttempt = 0;
-    private int maxBoardUpdateAttempt = 5;
     #endregion
     #endregion
 
@@ -133,7 +130,7 @@ public class Match3_GameController : MonoBehaviour
 
      // Goes through from bottom to top all blocks to find out if there are any openings that need to be filled in by falling blocks.
     // [0 (columns), 0 (rows)] is the bottom left
-    private void CheckBoard()
+    /*private void CheckBoardOLD()
     {
         PrintDebugMsg("===================== Checking Board =====================");
         
@@ -147,10 +144,10 @@ public class Match3_GameController : MonoBehaviour
         }
 
         PrintDebugMsg("==========================================================");
-    }
+    }*/
      // Drops the blocks starting in the given [column, row].
     // Once at the top, creates new blocks.
-    private void DropBlocks(int column, int row)
+    /*private void DropBlocksOLD(int column, int row)
     {
         PrintDebugMsg("Droping blocks at [" + column + ", " + row + "]");
 
@@ -167,20 +164,25 @@ public class Match3_GameController : MonoBehaviour
         }
 
         if (emptySpaces > 0) FillTop(column);
-    }
+    }*/
     // From the top of the given column, add new blocks until we reach a non-null space.
-    private void FillTop(int column)
+    /*private void FillTopOLD(int column)
     {
         for(int r = rows - 1; r >= 0; r--)
         {
-            if (blocks[column, r] == null) SpawnNewBlock(column, r);
+            if (blocks[column, r] == null)
+            {
+                SpawnNewBlock(column, r);
+                blocks[column, r].Translate(Vector2.up * gridSpaceSize * rows);
+                blocks[column, r].GetComponent<Match3_Block>().InitialMove(Vector2.down, rows);
+            }
             else break;
         }
-    }
+    }*/
 
      // Goes through all the blocks in the array and checks (up, down, left, and right) for any matches of 3+ same blocks.
     // Returns whether or not a match was found (true if yes).
-    private bool CheckForMatches(bool handleMatches)
+    /*private bool CheckForMatchesOLD(bool handleMatches)
     {
         currMatchedObjs = new List<Transform>();
         bool matchesFound = false;
@@ -241,7 +243,7 @@ public class Match3_GameController : MonoBehaviour
                         currMatchedObjs.Add(blocks[c, r]);
                         matchesFound = true;
                         if(handleMatches) HandleMatches(currMatchedObjs);
-                        currBoardUpdateAttempt = 0;
+                        //currBoardUpdateAttempt = 0;
                     }
                     PrintDebugMsg(currMatchedObjs.Count + " objects involved in chain.");
                 }
@@ -249,17 +251,7 @@ public class Match3_GameController : MonoBehaviour
         }
 
         return matchesFound;
-    }
-    // Handles a group of objects that were involved in a match chain.
-    private void HandleMatches(List<Transform> matches)
-    {
-        foreach (Transform obj in matches)
-        {
-            int[] coords = FindBlockCoordsInArray(obj);
-            blocks[coords[0], coords[1]] = null;
-            Destroy(obj.gameObject);
-        }
-    }
+    }*/
 
     // Spawns a new random block at the given coords and adds it to the list at the correct coords.
     private void SpawnNewBlock(int column, int row)
@@ -295,7 +287,7 @@ public class Match3_GameController : MonoBehaviour
     }
 
     // Updates the board by checking to see that all spots have an object and no matches are un-handled.
-    private void UpdateBoard()
+    /*private void UpdateBoardOLD()
     {
         bool matchesFound = true;
         while (matchesFound)
@@ -312,6 +304,146 @@ public class Match3_GameController : MonoBehaviour
         }
 
         currBoardUpdateAttempt++;
+    }*/
+
+    // The main entry function for updating the board whenever the board was adjusted
+    private void UpdateBoard()
+    {
+        while (CheckForMatches(true))
+        {
+            if (!AreObjsMoving())
+            {
+                CheckForMatches(false);
+                AddNewObjects(true);
+            }
+        }
+    }
+    // If onlyCheck is true then it will only check for matches and return true if any were found. If false then it will check and then handle the found matches as well.
+    private bool CheckForMatches(bool onlyCheck)
+    {
+        PrintDebugMsg("Checking for matches...");
+
+        List<Transform> currMatchedObjs = new List<Transform>();
+        bool matchesFound = false;
+        for(int r = 0; r < rows; r++)
+        {
+            for(int c = 0; c < columns; c++)
+            {
+                Transform currBlock = blocks[c, r];
+                PrintDebugMsg("    Checking " + currBlock.name + "[" + c + ", " + r + "] " + (Vector2)currBlock.position + "...");
+
+                List<Transform> horizObjs = new List<Transform>();
+                List<Transform> vertObjs = new List<Transform>();
+                BlockTypes currType = currBlock.GetComponent<Match3_Block>().Type;
+
+                // Look for matches one by one
+                int currI = 1;
+                Transform currHoriz = null;
+                Transform currVert = null;
+                bool horizDone = false;
+                bool vertDone = false;
+                while (!horizDone || !vertDone)
+                {
+                    // Horizontal (Going right)
+                    if (!horizDone && c + currI < columns && c < columns - 2)
+                    {
+                        currHoriz = blocks[c + currI, r];
+                        if (currHoriz != null && currType == currHoriz.GetComponent<Match3_Block>().Type) horizObjs.Add(currHoriz);
+                        else horizDone = true;
+                    }
+                    else horizDone = true;
+                    // Vertical (Going up)
+                    if (!vertDone && r + currI < rows && r < rows - 2)
+                    {
+                        currVert = blocks[c, r + currI];
+                        if (currVert != null && currType == currVert.GetComponent<Match3_Block>().Type) vertObjs.Add(currVert);
+                        else vertDone = true;
+                    }
+                    else vertDone = true;
+
+                    currI++;
+                }
+                PrintDebugMsg("        Matches found (Horizontal, Vertical): " + horizObjs.Count + ", " + vertObjs.Count);
+
+                // Find sufficient matches and save them for when HandleMatches() is called
+                if (horizObjs.Count >= 2)
+                {
+                    PrintDebugMsg("        Found Horizontal match!");
+                    foreach (Transform obj in horizObjs)
+                    {
+                        if(!currMatchedObjs.Contains(obj)) currMatchedObjs.Add(obj);
+                    }
+                }
+                if (vertObjs.Count >= 2)
+                {
+                    PrintDebugMsg("        Found Vertical match!");
+                    foreach (Transform obj in vertObjs)
+                    {
+                        if (!currMatchedObjs.Contains(obj)) currMatchedObjs.Add(obj);
+                    }
+                }
+                if (horizObjs.Count > 0 || vertObjs.Count > 0)
+                {
+                    if (onlyCheck) return true;
+
+                    matchesFound = true;
+                    if (!currMatchedObjs.Contains(currBlock)) currMatchedObjs.Add(currBlock);
+                }
+                PrintDebugMsg("      " + currMatchedObjs.Count + " objects involved in chain.");
+            }
+        }
+
+        // Handle matches if onlyCheck is false
+        if(!onlyCheck && currMatchedObjs.Count > 0)
+        {
+            PrintDebugMsg("    Found " + currMatchedObjs.Count + " total objects involved in a match.");
+            HandleMatches(currMatchedObjs);
+        }
+
+        return matchesFound;
+    }
+    // Handles a group of objects that were involved in a match chain.
+    private void HandleMatches(List<Transform> matches)
+    {
+        foreach (Transform obj in matches)
+        {
+            int[] coords = FindBlockCoordsInArray(obj);
+            blocks[coords[0], coords[1]] = null;
+            Destroy(obj.gameObject);
+        }
+    }
+    // Add new blocks at top of each column that have had blocks removed after matches. Then it sets up those new blocks to drop before moving on to the next column. useAnim = use animation?
+    private void AddNewObjects(bool useAnim)
+    {
+        for(int c = 0; c < columns; c++)
+        {
+            int nullSpaces = 0;
+
+            // Find the empty spaces and drop the blocks that are already there and have empty spaces below them
+            for (int r = 0; r < rows; r++)
+            {
+                if (blocks[c, r] == null) nullSpaces++;
+                else
+                {
+                    blocks[c, r - nullSpaces] = blocks[c, r];
+                    if(useAnim) blocks[c, r - nullSpaces].GetComponent<Match3_Block>().InitialMove(Vector2.down, nullSpaces);
+                    else blocks[c, r - nullSpaces].position = new Vector2(botLeft.x + gridSpaceSize * c, botLeft.y + gridSpaceSize * (r - nullSpaces));
+                }
+            }
+
+            // Drop the new blocks
+            for(int i = 1; i <= nullSpaces; i++)
+            {
+                int rand = Random.Range(0, spawnableBlocks.Length);
+                blocks[c, rows - i] = Instantiate(spawnableBlocks[rand]).transform;
+                if (useAnim)
+                {
+                    blocks[c, rows - i].position = new Vector2(botLeft.x + gridSpaceSize * c, botLeft.y + gridSpaceSize * (rows + i));
+                    blocks[c, rows - i].GetComponent<Match3_Block>().InitialMove(Vector2.down, nullSpaces + 1);
+                }
+                else blocks[c, rows - i].position = new Vector2(botLeft.x + gridSpaceSize * c, botLeft.y + gridSpaceSize * (rows - i));
+            }
+        }
     }
     #endregion
 
@@ -363,15 +495,13 @@ public class Match3_GameController : MonoBehaviour
         if (spawnableBlocks.Length != 0) SetUpBoard();
 
         int initialSpawnI = 0;
-        bool matchesExist = true;
-        while(matchesExist)
+        /*while (CheckForMatches(true))
         {
-            matchesExist = CheckForMatches(true);
-            if (matchesExist) HandleMatches(currMatchedObjs);
-            CheckBoard();
+            CheckForMatches(false);
+            AddNewObjects(false);
 
             initialSpawnI++;
-        }
+        }*/
         PrintDebugMsg("Initial spawn iterations: " + initialSpawnI);
     }
     // This function is called every fixed framerate frame, if the MonoBehaviour is enabled.
@@ -382,15 +512,18 @@ public class Match3_GameController : MonoBehaviour
     // Update is called every frame, if the MonoBehaviour is enabled.
     void Update()
     {
-        if(currBoardUpdateAttempt < maxBoardUpdateAttempt && !AreObjsMoving()) UpdateBoard();
+        //UpdateBoard();
 
         if (isDebug)
         {
             Debug.DrawRay(botLeft, Vector2.right * (columns - 1 + gridSpaceSize));
             Debug.DrawRay(botLeft, Vector2.up * (rows - 1 + gridSpaceSize));
 
-            if (Input.GetKeyDown(KeyCode.M)) CheckForMatches(true);
-            if (Input.GetKeyDown(KeyCode.B)) CheckBoard();
+            if (Input.GetKeyUp(KeyCode.V)) PrintDebugMsg(CheckForMatches(true).ToString());
+            if (Input.GetKeyUp(KeyCode.C)) PrintDebugMsg(CheckForMatches(false).ToString());
+            if (Input.GetKeyUp(KeyCode.A)) AddNewObjects(false);
+            if (Input.GetKeyUp(KeyCode.S)) AddNewObjects(true);
+            if (Input.GetKeyUp(KeyCode.F)) UpdateObjsPos();
         }
     }
     // LateUpdate is called every frame after all other update functions, if the Behaviour is enabled.
