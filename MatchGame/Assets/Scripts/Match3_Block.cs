@@ -6,7 +6,8 @@ public enum BlockTypes
 {
     Wood,
     Stone,
-    Gold
+    Gold,
+    Food
 }
 
 public class Match3_Block : MonoBehaviour
@@ -22,12 +23,13 @@ public class Match3_Block : MonoBehaviour
     #endregion
 
     #region Public
-    public float speed = 1;
+    
     #endregion
 
     #region Private
     [SerializeField]
     private BlockTypes type = BlockTypes.Wood;
+    private float speed = 0;
 
     private Vector2 prevStartPos = Vector2.zero;
     private bool stillMoving = false;
@@ -168,7 +170,7 @@ public class Match3_Block : MonoBehaviour
     // Start is called on the frame when a script is enabled just before any of the Update methods is called the first time.
     void Start()
     {
-        
+        speed = Match3_GameController.SINGLETON.blockSpeed;
     }
     // This function is called every fixed framerate frame, if the MonoBehaviour is enabled.
     void FixedUpdate()

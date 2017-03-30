@@ -21,6 +21,7 @@ public class Match3_GameController : MonoBehaviour
     public float gridSpaceSize = 1;
     public int rows = 10;
     public int columns = 5;
+    public float blockSpeed = 5;
 
     public GameObject[] spawnableBlocks;
     #endregion
@@ -347,6 +348,7 @@ public class Match3_GameController : MonoBehaviour
     void Update()
     {
         UpdateBoard();
+        if (!AreObjsMoving()) UpdateObjsPos();
 
         if (isDebug)
         {
