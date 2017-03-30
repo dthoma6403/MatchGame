@@ -28,8 +28,6 @@ public class Match3_GameController : MonoBehaviour
     #region Private
     private Vector2 botLeft = Vector2.zero;
     private Transform[, ] blocks;
-
-    private List<Transform> currMatchedObjs;
     #endregion
     #endregion
 
@@ -121,13 +119,11 @@ public class Match3_GameController : MonoBehaviour
     private void SetUpBoard()
     {
         PrintDebugMsg("====================== Setup Board ======================");
-
+        
         for (int r = 0; r < rows; r++)
         {
             for (int c = 0; c < columns; c++) SpawnNewBlock(c, r);
         }
-
-        PrintDebugMsg("==========================================================");
     }
 
     // Spawns a new random block at the given coords and adds it to the list at the correct coords.
@@ -175,90 +171,67 @@ public class Match3_GameController : MonoBehaviour
             AddNewObjects(true);
         }
     }
-    // If handleMatches are true then it will also handle the matches and return true if any were found. If false then it will only check for matches and return true if any were found.
+     // If handleMatches are true then it will also handle the matches and return true if any were found. If false then it will only check for matches and return true if any were found.
+    // Goes from bottom left to top right, for each object looks for matches to the right and up until a different object is met. It then breaks and moves on to next object.
     private bool CheckForMatches(bool handleMatches)
     {
         PrintDebugMsg("====================== Checking Matches =================");
 
-        List<Transform> currMatchedObjs = new List<Transform>();
         bool matchesFound = false;
+        List<Transform> matchedObjs = new List<Transform>();
+
         for(int r = 0; r < rows; r++)
         {
             for(int c = 0; c < columns; c++)
             {
-                Transform currBlock = blocks[c, r];
-                PrintDebugMsg("    Checking " + currBlock.name + "[" + c + ", " + r + "] " + (Vector2)currBlock.position + "...");
+                PrintDebugMsg("Checking blocks[" + c + ", " + r + "]...");
+                BlockTypes currType = blocks[c, r].GetComponent<Match3_Block>().Type;
 
-                List<Transform> horizObjs = new List<Transform>();
-                List<Transform> vertObjs = new List<Transform>();
-                BlockTypes currType = currBlock.GetComponent<Match3_Block>().Type;
-
-                // Look for matches one by one
-                int currI = 1;
-                Transform currHoriz = null;
-                Transform currVert = null;
-                bool horizDone = false;
-                bool vertDone = false;
-                while (!horizDone || !vertDone)
+                // Check for vertical and horizontal matches
+                List<Transform> vertMatches = new List<Transform>();
+                for(int i = 0; i < rows - r; i++)
                 {
-                    // Horizontal (Going right)
-                    if (!horizDone && c + currI < columns && c < columns - 2)
-                    {
-                        currHoriz = blocks[c + currI, r];
-                        if (currHoriz != null && currType == currHoriz.GetComponent<Match3_Block>().Type) horizObjs.Add(currHoriz);
-                        else horizDone = true;
-                    }
-                    else horizDone = true;
-                    // Vertical (Going up)
-                    if (!vertDone && r + currI < rows && r < rows - 2)
-                    {
-                        currVert = blocks[c, r + currI];
-                        if (currVert != null && currType == currVert.GetComponent<Match3_Block>().Type) vertObjs.Add(currVert);
-                        else vertDone = true;
-                    }
-                    else vertDone = true;
-
-                    currI++;
+                    if (blocks[c, r + i].GetComponent<Match3_Block>().Type == currType) vertMatches.Add(blocks[c, r + i]);
+                    else break;
                 }
-                PrintDebugMsg("        Matches found (Horizontal, Vertical): " + horizObjs.Count + ", " + vertObjs.Count);
+                string vertMatchString = "";
+                foreach (Transform block in vertMatches) vertMatchString += "[" + FindBlockCoordsInArray(block)[0] + ", " + FindBlockCoordsInArray(block)[1] + "], ";
+                PrintDebugMsg("  Found " + vertMatches.Count + " vertical matches: " + vertMatchString);
 
-                // Find sufficient matches and save them for when HandleMatches() is called
-                if (horizObjs.Count >= 2)
+                List<Transform> horizMatches = new List<Transform>();
+                for(int i = 0; i < columns - c; i++)
                 {
-                    PrintDebugMsg("        Found Horizontal match!");
-                    foreach (Transform obj in horizObjs)
-                    {
-                        if(!currMatchedObjs.Contains(obj)) currMatchedObjs.Add(obj);
-                    }
+                    if (blocks[c + i, r].GetComponent<Match3_Block>().Type == currType) horizMatches.Add(blocks[c + i, r]);
+                    else break;
                 }
-                if (vertObjs.Count >= 2)
+                string horizMatchString = "";
+                foreach (Transform block in horizMatches) horizMatchString += "[" + FindBlockCoordsInArray(block)[0] + ", " + FindBlockCoordsInArray(block)[1] + "], ";
+                PrintDebugMsg("  Found " + horizMatches.Count + " horizontal matches: " + horizMatchString);
+
+                // Check to see if found matches meet minimum count
+                if (vertMatches.Count > 2)
                 {
-                    PrintDebugMsg("        Found Vertical match!");
-                    foreach (Transform obj in vertObjs)
+                    foreach(Transform block in vertMatches)
                     {
-                        if (!currMatchedObjs.Contains(obj)) currMatchedObjs.Add(obj);
+                        if (!matchedObjs.Contains(block)) matchedObjs.Add(block);
                     }
-                }
-                if (horizObjs.Count > 0 || vertObjs.Count > 0)
-                {
-                    if (!handleMatches) return true;
 
                     matchesFound = true;
-                    if (!currMatchedObjs.Contains(currBlock)) currMatchedObjs.Add(currBlock);
                 }
-                PrintDebugMsg("      " + currMatchedObjs.Count + " objects involved in matches so far.");
+                if (horizMatches.Count > 2)
+                {
+                    foreach (Transform block in horizMatches)
+                    {
+                        if (!matchedObjs.Contains(block)) matchedObjs.Add(block);
+                    }
+
+                    matchesFound = true;
+                }
+                PrintDebugMsg("  " + matchedObjs.Count + " objects in list of matches.");
             }
         }
-        
-        // Handle matches if onlyCheck is false
-        if(handleMatches && currMatchedObjs.Count > 0)
-        {
-            PrintDebugMsg("    Found " + currMatchedObjs.Count + " total objects involved in a match.");
-            HandleMatches(currMatchedObjs);
-        }
 
-
-        PrintDebugMsg("==========================================================");
+        if (handleMatches) HandleMatches(matchedObjs);
         return matchesFound;
     }
     // Handles a group of objects that were involved in a match chain.
