@@ -23,7 +23,9 @@ public class Match3_Block : MonoBehaviour
     #endregion
 
     #region Public
-    
+    [SerializeField]
+    [Tooltip("The amount of the resource that this block provides.")]
+    private int amount = 1;
     #endregion
 
     #region Private
@@ -36,6 +38,7 @@ public class Match3_Block : MonoBehaviour
     private Vector2 dir = Vector2.zero;
     private Vector2 currTargetPos = Vector2.zero;
     private bool currMoveMatchless = false;
+    private bool resourceHandled = false;
     #endregion
     #endregion
 
@@ -45,14 +48,7 @@ public class Match3_Block : MonoBehaviour
     #endregion
 
     #region Public
-     // Called fromt the main script when this block was involved with a match.
-    // totalMatch = Total objects involved with this match.
-    public void OnMatch(int totalMatch)
-    {
-
-    }
-
-     // Sets stillMoving to true, the given direction, and the target position that it is to move to by calculating using its current position and the number of spaces given.
+    // Sets stillMoving to true, the given direction, and the target position that it is to move to by calculating using its current position and the number of spaces given.
     // Then makes the first move.
     public void InitialMove(Vector2 direction, int spaces = 1)
     {
@@ -147,11 +143,29 @@ public class Match3_Block : MonoBehaviour
             return type;
         }
     }
+    public int Amount
+    {
+        get
+        {
+            return amount;
+        }
+    }
     public bool StillMoving
     {
         get
         {
             return stillMoving;
+        }
+    }
+    public bool ResourceHandled
+    {
+        get
+        {
+            return resourceHandled;
+        }
+        set
+        {
+            resourceHandled = value;
         }
     }
     #endregion

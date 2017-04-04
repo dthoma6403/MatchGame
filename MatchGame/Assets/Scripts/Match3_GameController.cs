@@ -219,6 +219,7 @@ public class Match3_GameController : MonoBehaviour
 
                     matchesFound = true;
                 }
+                else vertMatches = new List<Transform>();
                 if (horizMatches.Count > 2)
                 {
                     foreach (Transform block in horizMatches)
@@ -228,7 +229,9 @@ public class Match3_GameController : MonoBehaviour
 
                     matchesFound = true;
                 }
+                else horizMatches = new List<Transform>();
                 PrintDebugMsg("  " + matchedObjs.Count + " objects in list of matches.");
+                if (handleMatches) HandleMatchScores(vertMatches, horizMatches);
             }
         }
 
@@ -245,6 +248,32 @@ public class Match3_GameController : MonoBehaviour
             Destroy(obj.gameObject);
         }
     }
+    // Finds out exactly how many blocks are involved in a chain of matches and determines how many resources to be applyed.
+    private void HandleMatchScores(List<Transform> vertMatches, List<Transform> horizMatches)
+    {
+        BlockTypes type = vertMatches[0].GetComponent<Match3_Block>().Type;
+        int currBonus = 0;
+        int currAmount = 0;
+
+        int[] coords;
+        foreach (Transform block in vertMatches)
+        {
+            coords = FindBlockCoordsInArray(block);
+            if(!block.GetComponent<Match3_Block>().ResourceHandled)
+            {
+
+            }
+        }
+        foreach (Transform block in horizMatches)
+        {
+            coords = FindBlockCoordsInArray(block);
+            if (!block.GetComponent<Match3_Block>().ResourceHandled)
+            {
+
+            }
+        }
+    }
+
     // Add new blocks at top of each column that have had blocks removed after matches. Then it sets up those new blocks to drop before moving on to the next column. useAnim = use animation?
     private void AddNewObjects(bool useAnim)
     {
