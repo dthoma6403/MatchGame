@@ -232,7 +232,7 @@ public class Match3_Input : MonoBehaviour
     // Update is called every frame, if the MonoBehaviour is enabled.
     void Update()
     {
-        if (!Match3_GameController.SINGLETON.AreObjsMoving())
+        if (!Match3_GameController.SINGLETON.AreObjsMoving() && Match3_GameController.SINGLETON.IsPlaying)
         {
             // Get the swipe
             if (currPlatform == Platforms.Editor || currPlatform == Platforms.Mobile) swipe = CheckForMobileSwipe();

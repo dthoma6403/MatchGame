@@ -27,8 +27,14 @@ public class Match3_GameController : MonoBehaviour
     #endregion
 
     #region Private
+    private bool doingInitialRuns = true;
+    private GameObject blocksAnchor = null;
+
     private Vector2 botLeft = Vector2.zero;
     private Transform[, ] blocks;
+
+    private bool isPlaying = true;
+    private bool endedRound = false;
     #endregion
     #endregion
 
@@ -38,8 +44,8 @@ public class Match3_GameController : MonoBehaviour
     #endregion
 
     #region Public
-      // Called from Match3_Input when a swipe that successfully targeted an object was detected.
-     // target = The target that was swiped on
+    // Called from Match3_Input when a swipe that successfully targeted an object was detected.
+    // target = The target that was swiped on
     // dir ==== The direction the swipe went (Vector2.up, .left, etc.)
     public void PerformMove(Transform target, Vector2 dir)
     {
@@ -92,6 +98,8 @@ public class Match3_GameController : MonoBehaviour
             {
                 swipedObjScript.InitialMove(dir);
                 otherObjScript.InitialMove(-dir);
+
+                if (Resources.SINGLETON.MadeMove()) EndRound();
             }
             else
             {
@@ -120,7 +128,10 @@ public class Match3_GameController : MonoBehaviour
     private void SetUpBoard()
     {
         PrintDebugMsg("====================== Setup Board ======================");
-        
+
+        blocksAnchor = new GameObject("BlocksAnchor");
+        blocksAnchor.transform.parent = transform;
+
         for (int r = 0; r < rows; r++)
         {
             for (int c = 0; c < columns; c++) SpawnNewBlock(c, r);
@@ -133,6 +144,7 @@ public class Match3_GameController : MonoBehaviour
         int rand = Random.Range(0, spawnableBlocks.Length);
         blocks[column, row] = Instantiate(spawnableBlocks[rand]).transform;
         blocks[column, row].position = new Vector2(botLeft.x + gridSpaceSize * column, botLeft.y + gridSpaceSize * row);
+        blocks[column, row].parent = blocksAnchor.transform;
 
         PrintDebugMsg("[" + column + ", " + row + "] is " + blocks[column, row].name + " at " + (Vector2)blocks[column, row].position);
     }
@@ -231,11 +243,14 @@ public class Match3_GameController : MonoBehaviour
                 }
                 else horizMatches = new List<Transform>();
                 PrintDebugMsg("  " + matchedObjs.Count + " objects in list of matches.");
-                if (handleMatches) HandleMatchScores(vertMatches, horizMatches);
             }
         }
 
-        if (handleMatches) HandleMatches(matchedObjs);
+        if (handleMatches)
+        {
+            HandleMatches(matchedObjs);
+            if(!doingInitialRuns) HandleMatchScores(matchedObjs);
+        }
         return matchesFound;
     }
     // Handles a group of objects that were involved in a match chain.
@@ -249,29 +264,10 @@ public class Match3_GameController : MonoBehaviour
         }
     }
     // Finds out exactly how many blocks are involved in a chain of matches and determines how many resources to be applyed.
-    private void HandleMatchScores(List<Transform> vertMatches, List<Transform> horizMatches)
+    private void HandleMatchScores(List<Transform> matches)
     {
-        BlockTypes type = vertMatches[0].GetComponent<Match3_Block>().Type;
-        int currBonus = 0;
-        int currAmount = 0;
-
-        int[] coords;
-        foreach (Transform block in vertMatches)
-        {
-            coords = FindBlockCoordsInArray(block);
-            if(!block.GetComponent<Match3_Block>().ResourceHandled)
-            {
-
-            }
-        }
-        foreach (Transform block in horizMatches)
-        {
-            coords = FindBlockCoordsInArray(block);
-            if (!block.GetComponent<Match3_Block>().ResourceHandled)
-            {
-
-            }
-        }
+        Resources.SINGLETON.AdjustCurrResource(matches[0].GetComponent<Match3_Block>().Type, matches.Count);
+        foreach (Transform block in matches) block.GetComponent<Match3_Block>().ResourceHandled = true;
     }
 
     // Add new blocks at top of each column that have had blocks removed after matches. Then it sets up those new blocks to drop before moving on to the next column. useAnim = use animation?
@@ -298,6 +294,7 @@ public class Match3_GameController : MonoBehaviour
             {
                 int rand = Random.Range(0, spawnableBlocks.Length);
                 blocks[c, rows - i] = Instantiate(spawnableBlocks[rand]).transform;
+                blocks[c, rows - i].parent = blocksAnchor.transform;
                 if (useAnim)
                 {
                     blocks[c, rows - i].position = new Vector2(botLeft.x + gridSpaceSize * c, botLeft.y + gridSpaceSize * (rows + (nullSpaces + 1 - i)));
@@ -305,6 +302,19 @@ public class Match3_GameController : MonoBehaviour
                 }
                 else blocks[c, rows - i].position = new Vector2(botLeft.x + gridSpaceSize * c, botLeft.y + gridSpaceSize * (rows - i));
             }
+        }
+    }
+
+    // Ends the current round when moves have reached 0.
+    private void EndRound()
+    {
+        isPlaying = false;
+        if (!AreObjsMoving())
+        {
+            PrintDebugMsg("Round over!");
+            endedRound = true;
+
+            Resources.SINGLETON.EndRound();
         }
     }
     #endregion
@@ -330,6 +340,13 @@ public class Match3_GameController : MonoBehaviour
         get
         {
             return gridSpaceSize;
+        }
+    }
+    public bool IsPlaying
+    {
+        get
+        {
+            return isPlaying;
         }
     }
     #endregion
@@ -365,6 +382,7 @@ public class Match3_GameController : MonoBehaviour
 
             initialSpawnI++;
         }
+        doingInitialRuns = false;
         PrintDebugMsg("Initial spawn iterations: " + initialSpawnI);
         PrintDebugMsg("==========================================================");
     }
@@ -378,6 +396,7 @@ public class Match3_GameController : MonoBehaviour
     {
         UpdateBoard();
         if (!AreObjsMoving()) UpdateObjsPos();
+        if (!isPlaying && !endedRound) EndRound();
 
         if (isDebug)
         {

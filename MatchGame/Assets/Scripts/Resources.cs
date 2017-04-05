@@ -16,10 +16,13 @@ public class Resources : MonoBehaviour
     #endregion
 
     #region Public
-    
+    public int startingMoves = 10;
     #endregion
 
     #region Private
+    private int maxMoves = 0;
+    private int currMoves = 0;
+
     private int woodTotal = 0;
     private int goldTotal = 0;
     private int stoneTotal = 0;
@@ -38,6 +41,16 @@ public class Resources : MonoBehaviour
     #endregion
 
     #region Public
+    // Called when the player made a successful move. Returns true if player has no more moves left afterward.
+    public bool MadeMove()
+    {
+        if(currMoves > 0) currMoves--;
+        PrintDebugMsg("Remaining moves: " + currMoves);
+
+        if (currMoves <= 0) return true;
+        return false;
+    }
+
     // Adds/subtracts amount to the chosen resource for the current round.
     public void AdjustCurrResource(BlockTypes type, int amount)
     {
@@ -65,7 +78,7 @@ public class Resources : MonoBehaviour
                 break;
         }
     }
-    // Adds/subtracts amount to the chosen resource for the total resources.
+    // Adds/subtracts amount to the chosen resource for the total resources in the game.
     public void AdjustTotalResource(BlockTypes type, int amount)
     {
         switch (type)
@@ -96,13 +109,15 @@ public class Resources : MonoBehaviour
     // Takes the current resources from this round and applies it to the total resources for each.
     public void EndRound()
     {
-        woodTotal += woodCurr;
+        currMoves = maxMoves;
+
+        AdjustTotalResource(BlockTypes.Wood, woodCurr);
         woodCurr = 0;
-        goldTotal += goldCurr;
+        AdjustTotalResource(BlockTypes.Gold, goldCurr);
         goldCurr = 0;
-        stoneTotal += stoneCurr;
+        AdjustTotalResource(BlockTypes.Stone, stoneCurr);
         stoneCurr = 0;
-        foodTotal += foodCurr;
+        AdjustTotalResource(BlockTypes.Food, foodCurr);
         foodCurr = 0;
     }
     #endregion
@@ -147,7 +162,8 @@ public class Resources : MonoBehaviour
     // Start is called on the frame when a script is enabled just before any of the Update methods is called the first time.
     void Start()
     {
-
+        maxMoves = startingMoves;
+        currMoves = maxMoves;
     }
     // This function is called every fixed framerate frame, if the MonoBehaviour is enabled.
     void FixedUpdate()
