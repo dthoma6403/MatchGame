@@ -2,6 +2,7 @@
 using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
+using UnityEngine.UI;
 
 public class Resources : MonoBehaviour
 {
@@ -17,6 +18,29 @@ public class Resources : MonoBehaviour
 
     #region Public
     public int startingMoves = 10;
+
+    [Tooltip("Shows the moves remaining.")]
+    public Text movesUI = null;
+
+    [Tooltip("Shows the total wood for the whole game.")]
+    public Text woodTotalUI = null;
+    [Tooltip("Shows the total gold for the whole game.")]
+    public Text goldTotalUI = null;
+    [Tooltip("Shows the total stone for the whole game.")]
+    public Text stoneTotalUI = null;
+    [Tooltip("Shows the total food for the whole game.")]
+    public Text foodTotalUI = null;
+
+    [Tooltip("Shows the wood for the current round.")]
+    public Text woodCurrUI = null;
+    [Tooltip("Shows the gold for the current round.")]
+    public Text goldCurrUI = null;
+    [Tooltip("Shows the stone for the current round.")]
+    public Text stoneCurrUI = null;
+    [Tooltip("Shows the food for the current round.")]
+    public Text foodCurrUI = null;
+
+    public GameObject endRoundText = null;
     #endregion
 
     #region Private
@@ -46,6 +70,7 @@ public class Resources : MonoBehaviour
     {
         if(currMoves > 0) currMoves--;
         PrintDebugMsg("Remaining moves: " + currMoves);
+        UpdateUI();
 
         if (currMoves <= 0) return true;
         return false;
@@ -77,6 +102,8 @@ public class Resources : MonoBehaviour
                 PrintDebugMsg("New food: " + foodCurr);
                 break;
         }
+
+        UpdateUI();
     }
     // Adds/subtracts amount to the chosen resource for the total resources in the game.
     public void AdjustTotalResource(BlockTypes type, int amount)
@@ -104,6 +131,8 @@ public class Resources : MonoBehaviour
                 PrintDebugMsg("New total food: " + foodCurr);
                 break;
         }
+
+        UpdateUI();
     }
 
     // Takes the current resources from this round and applies it to the total resources for each.
@@ -119,11 +148,29 @@ public class Resources : MonoBehaviour
         stoneCurr = 0;
         AdjustTotalResource(BlockTypes.Food, foodCurr);
         foodCurr = 0;
+
+        endRoundText.SetActive(true);
+
+        UpdateUI();
     }
     #endregion
 
     #region Private
+    // Updates all the UI labels for each resource and moves counter.
+    private void UpdateUI()
+    {
+        movesUI.text = "Moves remaining: " + currMoves;
 
+        woodTotalUI.text = "Total wood: " + woodTotal;
+        goldTotalUI.text = "Total gold: " + goldTotal;
+        stoneTotalUI.text = "Total stone: " + stoneTotal;
+        foodTotalUI.text = "Total food: " + foodTotal;
+
+        woodCurrUI.text = "Wood: " + woodCurr;
+        goldCurrUI.text = "Gold: " + goldCurr;
+        stoneCurrUI.text = "Stone: " + stoneCurr;
+        foodCurrUI.text = "Food: " + foodCurr;
+    }
     #endregion
 
     #region Debug
@@ -164,6 +211,8 @@ public class Resources : MonoBehaviour
     {
         maxMoves = startingMoves;
         currMoves = maxMoves;
+
+        UpdateUI();
     }
     // This function is called every fixed framerate frame, if the MonoBehaviour is enabled.
     void FixedUpdate()
